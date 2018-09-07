@@ -1,63 +1,89 @@
 <template>
   <div>
-    <div v-for="w in weathers" v-bind:key="w.woeid" class="weather-place">
-      <div class="icon">
-        <img :src="`https://www.metaweather.com/static/img/weather/${ w.consolidated_weather[weatherNumber].weather_state_abbr }.svg`">
-      </div>
-      <div>
-        <strong>{{ w.title }}</strong>
-        <ul>
-          <li>Temp: {{ Math.round(w.consolidated_weather[weatherNumber].the_temp * 100) / 100 }}º</li>
-          <li>Max/Min: {{ Math.round(w.consolidated_weather[weatherNumber].max_temp * 100) /100 }}º/{{ Math.round(w.consolidated_weather[weatherNumber].min_temp * 100) / 100 }}º</li>
-        </ul>
-      </div>
+    <div class="search-wrapper">
+      <input type="text" v-model="search" placeholder="Search city.."/>
+      <button type="button" v-on:click="onSearch">Search</button>
+      <a href="">All Cities</a>
     </div>
+    <div v-if="notFound"><p>“No results were found. Try changing the keyword!”</p></div>
+    <group v-bind:weathers="weathers" v-if="type=='generalWeather'"></group>
+    <place v-bind:weathers="weathers" v-else-if="type=='placeWeather'"></place>
   </div>
 </template>
 <script>
+import Group from './group'
+import Place from './place'
 export default {
   name: 'weather',
+  components: {Place, Group},
+  props: ['type', 'woeid'],
   data: function () {
     return {
       weathers: [],
-      weatherNumber: 0
+      search: '',
+      notFound: false
     }
   },
   created () {
-    this.getWeather()
+    this.getWeather(this.type)
   },
   methods: {
-    getWeather: function () {
-      let cities = ['Istanbul', 'Berlin', 'London', 'Helsinki', 'Dublin', 'Vancouver']
+    generalWeather: function (cities) {
       let self = this
       cities.forEach(function (city) {
         self.$http.get('http://localhost/vue-weather/weather.php?command=search&keyword=' + city).then(function (place) {
-          self.$http.get('http://localhost/vue-weather/weather.php?command=location&woeid=' + place.body[0].woeid).then(function (response) {
-            self.weathers.push(response.body)
-          }, function () {
-            console.error('Error getting the weather for ' + city)
-          })
+          this.getPlaceWeather(place.body[0].woeid)
         }, function () {
           console.error('Error getting the place ' + city)
         })
       })
+    },
+    getPlaceWeather: function (woeid) {
+      this.$http.get('http://localhost/vue-weather/weather.php?command=location&woeid=' + woeid).then(function (response) {
+        this.weathers.push(response.body)
+      }, function () {
+        console.error('Error getting the weather for ' + city)
+      })
+    },
+    getWeather: function (type) {
+      this.weathers = []
+      switch (type) {
+        case 'generalWeather':
+          this.generalWeather(this.theCities())
+          break
+        case 'placeWeather':
+          this.getPlaceWeather(this.woeid)
+          break
+      }
+    },
+    theCities: function () {
+      let cities = ['Istanbul', 'Berlin', 'London', 'Helsinki', 'Dublin', 'Vancouver']
+      let filteredCities = cities.filter(city => {
+        return city.toLowerCase().includes(this.search.toLowerCase())
+      })
+      this.notFound = false
+      if (filteredCities.length === 0) { this.notFound = true }
+      return filteredCities
+    },
+    onSearch: function () {
+      this.$router.push({name: 'search', params: {city: this.search}})
+      this.getWeather(this.type)
     }
   }
 }
 </script>
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-  .weather-place {
+<style>
+  .weather-box {
     width: 150px;
     display: inline-block;
     margin: 10px;
   }
-  .weather-place .icon {
+  .weather-box .icon {
     width: 50px;
     height: 50px;
     margin: 10px auto;
   }
-  .weather-place ul {
+  .weather-box ul {
     list-style: none;
     padding: 0;
     margin: 0;

@@ -1,18 +1,18 @@
 <template>
-  <div class="home">
-    <h1>Weathers</h1>
-    <p>{{msg}}</p>
-    <weather type="generalWeather"></weather>
+  <div class="location">
+    <a href="">Back to Weathers</a>
+    <weather :type="placeWeather" :woeid="woeid"></weather>
   </div>
 </template>
 <script>
 import weather from './weather.vue'
 export default {
-  name: 'home',
+  name: 'location',
   components: { weather },
   data: function () {
     return {
-      msg: 'Welcome to Your favorite weather app.'
+      woeid: this.$route.params.woeid,
+      placeWeather: 'placeWeather'
     }
   }
 }
